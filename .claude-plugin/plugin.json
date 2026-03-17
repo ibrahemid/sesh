@@ -1,6 +1,5 @@
 {
   "name": "sesh",
   "version": "1.0.0",
-  "description": "Auto-names Claude Code sessions based on conversation context",
-  "hooks": "./hooks/hooks.json"
+  "description": "Auto-names Claude Code sessions based on conversation context"
 }
