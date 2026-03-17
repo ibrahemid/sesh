@@ -1,0 +1,17 @@
+{
+  "description": "Auto-name sessions after a few user messages",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/plugin/track-messages.js",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
