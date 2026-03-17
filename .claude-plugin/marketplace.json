@@ -1,0 +1,16 @@
+{
+  "name": "pode-plugins",
+  "version": "1.0.0",
+  "description": "Pode plugins for Claude Code",
+  "owner": {
+    "name": "ibrahemid",
+    "url": "https://github.com/ibrahemid"
+  },
+  "plugins": [
+    {
+      "name": "sesh",
+      "source": "./",
+      "description": "Auto-names Claude Code sessions based on conversation context"
+    }
+  ]
+}
