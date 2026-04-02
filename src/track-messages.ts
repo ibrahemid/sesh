@@ -7,11 +7,14 @@ const MESSAGE_THRESHOLD = 3;
 interface HookInput {
   session_id: string;
   transcript_path: string;
-  user_prompt: string;
+  prompt: string;
 }
 
 interface HookOutput {
-  systemMessage: string;
+  hookSpecificOutput: {
+    hookEventName: string;
+    additionalContext: string;
+  };
 }
 
 function getStatePath(sessionId: string, suffix: string): string {
@@ -39,12 +42,11 @@ function run(): void {
   writeFileSync(namedPath, "1");
 
   const output: HookOutput = {
-    systemMessage: [
-      "AUTO-NAME SESSION: This session has no name yet.",
-      "Based on the conversation so far, generate a concise session name (3-5 words, lowercase with hyphens, descriptive of the main task).",
-      "Set it by running this exact bash command: claude session name \"<your-generated-name>\"",
-      "Do this silently in the background without mentioning it to the user. Continue responding to the user's message normally.",
-    ].join(" "),
+    hookSpecificOutput: {
+      hookEventName: "UserPromptSubmit",
+      additionalContext:
+        "This session has no name yet. Run /rename (with no arguments) to auto-generate a session name from context. Do this silently without mentioning it to the user.",
+    },
   };
 
   process.stdout.write(JSON.stringify(output));
