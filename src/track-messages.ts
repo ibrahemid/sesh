@@ -1,52 +1,70 @@
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { tmpdir } from "os";
+import { readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
+import { tmpdir, homedir } from "os";
 import { join } from "path";
 
-const MESSAGE_THRESHOLD = 3;
+const SESSIONS_DIR = join(homedir(), ".claude", "sessions");
 
 interface HookInput {
   session_id: string;
   transcript_path: string;
-  prompt: string;
+  user_prompt: string;
 }
 
 interface HookOutput {
-  hookSpecificOutput: {
-    hookEventName: string;
-    additionalContext: string;
-  };
+  systemMessage: string;
 }
 
-function getStatePath(sessionId: string, suffix: string): string {
-  return join(tmpdir(), `sesh-${sessionId}.${suffix}`);
+function getNamedMarkerPath(sessionId: string): string {
+  return join(tmpdir(), `sesh-${sessionId}.named`);
 }
 
-function readCount(counterPath: string): number {
-  if (!existsSync(counterPath)) return 0;
-  return parseInt(readFileSync(counterPath, "utf-8"), 10) || 0;
+function findSessionFile(sessionId: string): string | null {
+  if (!existsSync(SESSIONS_DIR)) return null;
+  try {
+    const files = readdirSync(SESSIONS_DIR).filter((f) => f.endsWith(".json"));
+    for (const file of files) {
+      try {
+        const data = JSON.parse(
+          readFileSync(join(SESSIONS_DIR, file), "utf-8")
+        );
+        if (data.sessionId === sessionId) return join(SESSIONS_DIR, file);
+      } catch {}
+    }
+  } catch {}
+  return null;
 }
 
 function run(): void {
   const input: HookInput = JSON.parse(readFileSync("/dev/stdin", "utf-8"));
   const { session_id: sessionId } = input;
 
-  const namedPath = getStatePath(sessionId, "named");
-  if (existsSync(namedPath)) return;
+  const namedMarker = getNamedMarkerPath(sessionId);
+  if (existsSync(namedMarker)) return;
 
-  const counterPath = getStatePath(sessionId, "count");
-  const count = readCount(counterPath) + 1;
-  writeFileSync(counterPath, String(count));
+  const sessionFile = findSessionFile(sessionId);
+  if (!sessionFile) return;
 
-  if (count < MESSAGE_THRESHOLD) return;
+  try {
+    const sessionData = JSON.parse(readFileSync(sessionFile, "utf-8"));
+    if (sessionData.name) {
+      writeFileSync(namedMarker, "1");
+      return;
+    }
+  } catch {
+    return;
+  }
 
-  writeFileSync(namedPath, "1");
+  writeFileSync(namedMarker, "1");
+
+  const escapedPath = sessionFile.replace(/'/g, "'\\''");
 
   const output: HookOutput = {
-    hookSpecificOutput: {
-      hookEventName: "UserPromptSubmit",
-      additionalContext:
-        "This session has no name yet. Run /rename (with no arguments) to auto-generate a session name from context. Do this silently without mentioning it to the user.",
-    },
+    systemMessage: [
+      "AUTO-NAME SESSION: This session has no name yet.",
+      "Based on the user's prompt (and any prior context), generate a concise session name (3-5 words, lowercase-with-hyphens) that captures the main topic or task.",
+      `Set it by running: node -e "var f=require('fs'),p='${escapedPath}',d=JSON.parse(f.readFileSync(p,'utf-8'));d.name='YOUR-NAME';f.writeFileSync(p,JSON.stringify(d))"`,
+      "Replace YOUR-NAME with the generated name. Do this silently without mentioning it to the user.",
+    ].join(" "),
   };
 
   process.stdout.write(JSON.stringify(output));
