@@ -1,6 +1,6 @@
 {
   "name": "ibrahemid",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Pode plugins for Claude Code",
   "owner": {
     "name": "ibrahemid",
@@ -10,6 +10,7 @@
     {
       "name": "sesh",
       "source": "./",
+      "version": "1.0.1",
       "description": "Auto-names Claude Code sessions based on conversation context"
     }
   ]
